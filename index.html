@@ -61,28 +61,27 @@
               <span class="legend-item"><span class="legend-swatch active"></span>進行中</span>
               <span class="legend-item"><span class="legend-swatch pending"></span>待執行</span>
             </div>
-            <svg viewBox="0 0 360 320" class="diamond-svg">
-              <line x1="180" y1="60" x2="300" y2="180" class="path pending"/>
-              <line x1="300" y1="180" x2="60" y2="180" class="path active"/>
-              <line x1="60" y1="180" x2="180" y2="280" class="path done"/>
+            <svg viewBox="0 0 360 320" class="diamond-svg" id="diamondSvg">
+              <!-- 路徑線段由 app.js 依 field-library.js 算出的座標動態產生，數量/狀態會隨路徑範本改變 -->
+              <g id="pathLayer"></g>
 
-              <g class="base" transform="translate(180,60)">
+              <g class="base" id="baseSecond">
                 <rect x="-10" y="-10" width="20" height="20"/>
                 <text y="-20">二壘</text>
               </g>
-              <g class="base" transform="translate(300,180)">
+              <g class="base" id="baseFirst">
                 <rect x="-10" y="-10" width="20" height="20"/>
                 <text y="-20">一壘</text>
               </g>
-              <g class="base" transform="translate(60,180)">
+              <g class="base" id="baseThird">
                 <rect x="-10" y="-10" width="20" height="20"/>
                 <text y="-20">三壘</text>
               </g>
-              <g class="base home" transform="translate(180,280)">
+              <g class="base home" id="baseHome">
                 <rect x="-10" y="-10" width="20" height="20"/>
                 <text y="24">本壘</text>
               </g>
-              <circle class="robot-dot" id="robotDot" cx="120" cy="230" r="6"/>
+              <circle class="robot-dot" id="robotDot" r="6"/>
             </svg>
           </div>
 
@@ -189,6 +188,7 @@
 
 </div>
 
+<script src="field-library.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

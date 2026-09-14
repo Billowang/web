@@ -290,9 +290,76 @@ function applyTelemetry(t){
   }
 }
 
+/* =====================================================================
+   任務地圖繪製（使用 field-library.js 的場地/路徑資料）
+   座標系統：本壘=原點(0,0)，X=本壘→一壘，Y=本壘→三壘
+   ===================================================================== */
+const fieldSpecSelect = el("fieldSpec");
+const baseSpacingInput = el("baseSpacing");
+const pathLayer = el("pathLayer");
+const baseGroups = { home: el("baseHome"), first: el("baseFirst"), third: el("baseThird"), second: el("baseSecond") };
+const robotDot = el("robotDot");
+
+let missionProgress = 1;          // 目前走到路徑的第幾段（0-based），示範用
+const ACTIVE_PATH = "perimeter_full";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+async function renderDiamond(){
+  try{
+    const spacing = parseFloat(baseSpacingInput.value) || 27.43;
+
+    // 1) 四個壘包位置
+    const coords = FieldLibrary.getBaseCoords(spacing);
+    for(const [name, group] of Object.entries(baseGroups)){
+      const p = FieldLibrary.worldToSvg(coords[name], { spacingM: spacing });
+      group.setAttribute("transform", `translate(${p.x},${p.y})`);
+    }
+
+    // 2) 路徑線段（done / active / pending），數量依路徑範本而定
+    const segments = await FieldLibrary.getPath(ACTIVE_PATH, spacing, missionProgress);
+    pathLayer.innerHTML = "";
+    let activeMid = null;
+    segments.forEach((seg) => {
+      const p1 = FieldLibrary.worldToSvg(seg.from, { spacingM: spacing });
+      const p2 = FieldLibrary.worldToSvg(seg.to,   { spacingM: spacing });
+      const line = document.createElementNS(SVG_NS, "line");
+      line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
+      line.setAttribute("x2", p2.x); line.setAttribute("y2", p2.y);
+      line.setAttribute("class", `path ${seg.status}`);
+      pathLayer.appendChild(line);
+      if(seg.status === "active") activeMid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+    });
+
+    // 3) 機器人目前位置：示範用，畫在進行中那一段的中點
+    if(activeMid){
+      robotDot.setAttribute("cx", activeMid.x);
+      robotDot.setAttribute("cy", activeMid.y);
+      robotDot.style.display = "";
+    } else {
+      robotDot.style.display = "none";
+    }
+  }catch(err){
+    console.error("[renderDiamond] 畫面渲染失敗，請檢查 field_library.json / field-library.js 是否都放在同一個資料夾：", err);
+  }
+}
+
+fieldSpecSelect.addEventListener("change", async (e) => {
+  e.stopPropagation();
+  const preset = await FieldLibrary.getPreset(fieldSpecSelect.value);
+  baseSpacingInput.value = preset.base_spacing_m.toFixed(2);
+  renderDiamond();
+});
+baseSpacingInput.addEventListener("input", (e) => { e.stopPropagation(); renderDiamond(); });
+baseSpacingInput.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+renderDiamond();
+
 /* 開始整備按鈕：目前僅為前端示意，之後可在這裡送出對應的 WebSocket/ROS 2 指令 */
 el("startPrep").addEventListener("click", (e) => {
   e.stopPropagation();
+  missionProgress = Math.min(missionProgress + 1, 3);
+  renderDiamond();
   el("missionFooter").textContent = "整備已開始，機器人正沿路徑移動…";
 });
 
